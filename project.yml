@@ -1,0 +1,31 @@
+name: LyricFlow
+options:
+  bundleIdPrefix: com.lyricflow
+  deploymentTarget:
+    iOS: 16.0
+  xcodeVersion: 14.0
+packages:
+  LyricsEngine:
+    path: Modules/LyricsEngine
+  PlaybackEngine:
+    path: Modules/PlaybackEngine
+  UIComponents:
+    path: Modules/UIComponents
+
+targets:
+  LyricFlow:
+    type: application
+    platform: iOS
+    sources: [Apps/App/Sources]
+    resources: [Apps/App/Resources]
+    dependencies:
+      - package: LyricsEngine
+      - package: PlaybackEngine
+      - package: UIComponents
+    settings:
+      base:
+        INFOPLIST_KEY_UIBackgroundModes: ["audio", "processing"]
+        INFOPLIST_KEY_NSAppleMusicUsageDescription: "We need access to your music library to detect the current song and sync lyrics."
+    preBuildScripts:
+      - path: Scripts/generate_assets.sh
+        name: Generate Large Assets

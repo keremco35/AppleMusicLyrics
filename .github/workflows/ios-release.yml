@@ -1,0 +1,58 @@
+name: iOS Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Project
+        run: xcodegen generate
+
+      - name: Generate Large Assets
+        run: ./Scripts/generate_assets.sh
+
+      - name: Build Unsigned Archive
+        run: |
+          xcodebuild clean build \
+            -project LyricFlow.xcodeproj \
+            -scheme LyricFlow \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build
+
+      - name: Create IPA (Payload)
+        run: |
+          mkdir Payload
+          cp -r build/Build/Products/Release-iphoneos/LyricFlow.app Payload/
+          zip -r LyricFlow.ipa Payload
+
+      - name: Check IPA Size
+        run: |
+          filesize=$(stat -f%z "LyricFlow.ipa")
+          echo "IPA Size: $filesize bytes"
+          if [ $filesize -lt 104857600 ]; then
+            echo "Error: IPA size is less than 100MB"
+            exit 1
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: LyricFlow.ipa
+          generate_release_notes: true
